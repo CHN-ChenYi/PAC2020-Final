@@ -96,6 +96,7 @@ void NUFFT3D::fwd(complex<float>* u, complex<float>* raw) {
 
   // Pull from grid
   TSTART(fftw);
+#pragma omp parallel for schedule(guided)
   for (int p = 0; p < P; p++) {
     int kx2[2 * W + 1];
     int ky2[2 * W + 1];
