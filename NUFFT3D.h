@@ -10,6 +10,7 @@
 
 using namespace std;
 
+// can only exist one object at a time
 class NUFFT3D {
  private:
   complex<float>* f;
@@ -37,6 +38,15 @@ class NUFFT3D {
   void buildLUT();
   void getScalingFunction();
   float* q;
+
+  static const int N_X, N_Y, N_Z;
+  static int *task_count;
+  struct cmp {
+    bool operator()(const int left, const int right) {
+      return task_count[left] > task_count[right];
+    }
+  };
+  void ConvolutionAdj(complex<float>*);
 
  public:
   NUFFT3D(int, int, float*, float*, float*, int, int, int, int, int, int, int,

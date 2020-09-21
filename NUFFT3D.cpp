@@ -1,7 +1,21 @@
+#include <algorithm>
+#include <queue>
+#include <vector>
+
 #include "common.h"
+
+using std::lower_bound;
+using std::priority_queue;
+using std::sort;
+using std::vector;
 
 TDEF(fftw)
 TDEF(nufft)
+
+const int NUFFT3D::N_X = 64;
+const int NUFFT3D::N_Y = 64;
+const int NUFFT3D::N_Z = 64;
+int *NUFFT3D::task_count = new int[N_X * N_Y * N_Z];
 
 /* Constructor */
 NUFFT3D::NUFFT3D(int N, int OF, float* wx, float* wy, float* wz, int P,
@@ -152,18 +166,53 @@ void NUFFT3D::fwd(complex<float>* u, complex<float>* raw) {
   TPRINT(nufft, "NUFFT FWD");
 }
 
-/* Adjoint NUFFT transform */
-void NUFFT3D::adj(complex<float>* raw, complex<float>* u) {
-  TSTART(nufft);
+void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
+  float tmp_w[P];
+  float wx_bounds[N_X], wy_bounds[N_Y], wz_bounds[N_Z];
+  // find the boundaries of x
+#pragma omp parallel for schedule(static)
+  for (int p = 0; p < P; p++) tmp_w[p] = wx[p];
+  sort(tmp_w, tmp_w + P);
+#pragma omp parallel for schedule(static)
+  for (int p = 0; p < N_X; p++) wx_bounds[p] = tmp_w[P * p / N_X];
+    // find the boundaries of y
+#pragma omp parallel for schedule(static)
+  for (int p = 0; p < P; p++) tmp_w[p] = wy[p];
+  sort(tmp_w, tmp_w + P);
+#pragma omp parallel for schedule(static)
+  for (int p = 0; p < N_Y; p++) wy_bounds[p] = tmp_w[P * p / N_Y];
+    // find the boundaries of z
+#pragma omp parallel for schedule(static)
+  for (int p = 0; p < P; p++) tmp_w[p] = wz[p];
+  sort(tmp_w, tmp_w + P);
+#pragma omp parallel for schedule(static)
+  for (int p = 0; p < N_Z; p++) wz_bounds[p] = tmp_w[P * p / N_Z];
 
-  // Push to grid
-  TSTART(fftw);
-  for (int i = 0; i < N2 * N2 * N2; i++) {
-    f[i] = 0;
+  // find the task for each point
+#pragma omp parallel for schedule(static)
+  for (int i = 0; i < N_X * N_Y * N_Z; i++) task_count[i] = 0;
+  vector<int> task[N_X * N_Y * N_Z];
+#pragma omp parallel for schedule(guided)
+  for (int p = 0; p < P; p++) {
+    const int x = lower_bound(wx_bounds, wx_bounds + N_X, wx[p]) - wx_bounds;
+    const int y = lower_bound(wy_bounds, wy_bounds + N_Y, wy[p]) - wy_bounds;
+    const int z = lower_bound(wz_bounds, wz_bounds + N_Z, wz[p]) - wz_bounds;
+    const int id = x * N_Y * N_Z + y * N_Z + z;
+    task[id].push_back(p);
+    task_count[id]++;
   }
-  TEND(fftw);
-  TPRINT(fftw, "  Init_F ADJ");
-  TSTART(fftw)
+
+  // assign the task to tasklists
+  priority_queue<int, vector<int>, cmp> task_list[8];
+#pragma omp parallel for schedule(guided)
+  for (int i = 0; i < N_X; i++) {
+    for (int j = 0; j < N_Y; j++) {
+      for (int k = 0; k < N_Z; k++)
+        task_list[(i & 1) << 2 | (j & 1) << 1 | (k & 1)].push(i * N_Y * N_Z +
+                                                              j * N_Z + k);
+    }
+  }
+
   for (int p = 0; p < P; p++) {
     int kx2[2 * W + 1];
     int ky2[2 * W + 1];
@@ -212,6 +261,22 @@ void NUFFT3D::adj(complex<float>* raw, complex<float>* u) {
       }
     }
   }
+
+}
+
+/* Adjoint NUFFT transform */
+void NUFFT3D::adj(complex<float>* raw, complex<float>* u) {
+  TSTART(nufft);
+
+  // Push to grid
+  TSTART(fftw);
+  for (int i = 0; i < N2 * N2 * N2; i++) {
+    f[i] = 0;
+  }
+  TEND(fftw);
+  TPRINT(fftw, "  Init_F ADJ");
+  TSTART(fftw)
+  ConvolutionAdj(raw);
   TEND(fftw);
   TPRINT(fftw, "  Convolution ADJ");
   // (Oversampled) FFT
