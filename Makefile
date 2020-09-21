@@ -6,8 +6,8 @@ OBJECTS = $(SOURCES:.cpp=.o)
 
 CXX = icpc
 FLAGS = -std=c++11 -O3 -xHost -Wall -fopenmp -fp-model precise -DTIMING
-LIB = -fopenmp -L/path/to/fftw/lib -lfftw3f -lfftw3f_threads
-INC = -I/path/to/fftw/include
+LIB = -fopenmp -L/home/pac70/fftw/usr/local/lib -lfftw3f -lfftw3f_threads
+INC = -I/home/pac70/fftw/usr/local/include
 
 ################################################################################
 ################################################################################
@@ -22,4 +22,3 @@ $(TARGET) : $(OBJECTS)
 .PHONY: clean
 clean:	
 	rm -rf $(OBJECTS) $(TARGET)
-
