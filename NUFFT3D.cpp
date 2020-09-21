@@ -15,7 +15,9 @@ TDEF(nufft)
 const int NUFFT3D::N_X = 64;
 const int NUFFT3D::N_Y = 64;
 const int NUFFT3D::N_Z = 64;
-int *NUFFT3D::task_count = new int[N_X * N_Y * N_Z];
+int *const NUFFT3D::task_count = new int[N_X * N_Y * N_Z];
+const int NUFFT3D::GrayCode[8] = {0, 1, 3, 2, 6, 7, 5, 4};
+const int NUFFT3D::GrayCodeOrder[8] = {0, 1, 3, 2, 7, 6, 4, 5};
 
 /* Constructor */
 NUFFT3D::NUFFT3D(int N, int OF, float* wx, float* wy, float* wz, int P,
@@ -203,15 +205,7 @@ void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
   }
 
   // assign the task to tasklists
-  priority_queue<int, vector<int>, cmp> task_list[8];
-#pragma omp parallel for schedule(guided)
-  for (int i = 0; i < N_X; i++) {
-    for (int j = 0; j < N_Y; j++) {
-      for (int k = 0; k < N_Z; k++)
-        task_list[(i & 1) << 2 | (j & 1) << 1 | (k & 1)].push(i * N_Y * N_Z +
-                                                              j * N_Z + k);
-    }
-  }
+  priority_queue<int, vector<int>, cmp> task_list;
 
   for (int p = 0; p < P; p++) {
     int kx2[2 * W + 1];

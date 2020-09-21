@@ -40,12 +40,13 @@ class NUFFT3D {
   float* q;
 
   static const int N_X, N_Y, N_Z;
-  static int *task_count;
+  static int *const task_count;
   struct cmp {
     bool operator()(const int left, const int right) {
       return task_count[left] > task_count[right];
     }
   };
+  static const int GrayCode[8], GrayCodeOrder[8];
   void ConvolutionAdj(complex<float>*);
 
  public:
