@@ -6,6 +6,7 @@
 
 #include <atomic>
 #include <complex>
+#include <condition_variable>
 #include <mutex>
 #include <queue>
 
@@ -50,6 +51,7 @@ class NUFFT3D {
     }
   };
   std::mutex m_lock;
+  std::condition_variable cv_task;
   std::atomic<int> task_left;
   // std::priority_queue<int, vector<int>, cmp> task_list;
   std::queue<int> task_list;
