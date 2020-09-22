@@ -14,9 +14,10 @@ using std::vector;
 TDEF(fftw)
 TDEF(nufft)
 
-const int NUFFT3D::N_X = 64;
-const int NUFFT3D::N_Y = 64;
-const int NUFFT3D::N_Z = 64;
+// 64
+const int NUFFT3D::N_X = 4;
+const int NUFFT3D::N_Y = 4;
+const int NUFFT3D::N_Z = 4;
 int* const NUFFT3D::task_count = new int[N_X * N_Y * N_Z];
 const int NUFFT3D::GrayCode[8] = {0, 1, 3, 2, 6, 7, 5, 4};
 const int NUFFT3D::GrayCodeOrder[8] = {0, 1, 3, 2, 7, 6, 4, 5};
@@ -223,16 +224,16 @@ void NUFFT3D::ConvolutionAdjCore(complex<float>* raw, vector<int>& task) {
 
 extern int numThreads;
 
-#define Probe(dimension, delta, dimension_max)                            \
-  {                                                                       \
-    dimension += delta;                                                   \
-    const int probe_id = x * N_Y * N_Z + y * N_Z + z;                     \
-    dimension += delta;                                                   \
-    if (!vis[probe_id] && (dimension < 0 || dimension >= dimension_max || \
-                           vis[x * N_Y * N_Z + y * N_Z + z])) {           \
-      task_list.push(probe_id);                                           \
-      in_list[probe_id] = true;                                           \
-    }                                                                     \
+#define Probe(dimension, delta, dimension_max)                                 \
+  {                                                                            \
+    dimension += delta;                                                        \
+    const int probe_id = x * N_Y * N_Z + y * N_Z + z;                          \
+    dimension += delta;                                                        \
+    if (!in_queue[probe_id] && (dimension < 0 || dimension >= dimension_max || \
+                                vis[x * N_Y * N_Z + y * N_Z + z])) {           \
+      task_list.push(probe_id);                                                \
+      in_queue[probe_id] = true;                                               \
+    }                                                                          \
   }
 
 void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
@@ -273,10 +274,9 @@ void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
   }
 
   // assign the task to tasklists
-  bool* vis = new bool[N_X * N_Y * N_Z];
-  bool* in_list = new bool[N_X * N_Y * N_Z];
+  bool *in_queue = new bool[N_X * N_Y * N_Z], *vis = new bool[N_X * N_Y * N_Z];
 #pragma omp parallel for schedule(static)
-  for (int i = 0; i < N_X * N_Y * N_Z; i++) in_list[i] = vis[i] = false;
+  for (int i = 0; i < N_X * N_Y * N_Z; i++) in_queue[i] = vis[i] = false;
   task_left = N_X * N_Y * N_Z;
   for (int i = 0; i < N_X; i += 2) {
     for (int j = 0; j < N_Y; j += 2) {
@@ -284,61 +284,52 @@ void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
         task_list.push(i * N_Y * N_Z + j * N_Z + k);
     }
   }
-  puts("start");
-  for (int i = 0; i < 1; i++) {
-    // for (int i = 0; i < numThreads; i++) {
-    thread th([&, i, this, raw, task, vis] {
-      int id = -1;
-      while (task_left.load()) {
-        if (id >= 0) {
-          unique_lock<mutex> lock{this->m_lock};
-          int x = id / (N_Y * N_Z);
-          id %= (N_Y * N_Z);
-          int y = id / N_Z;
-          int z = id % N_Z;
-          const int code = (x & 1) << 2 | (y & 1) << 1 || (z & 1);
-          if (GrayCodeOrder[code] != 7) {
-            const int nxt_code = GrayCode[GrayCodeOrder[code] + 1];
-            const int delta = code ^ nxt_code;
-            switch (delta) {
-              case 1:
-                if (x + 1 < N_X) Probe(x, 1, N_X);
-                if (x - 1 > 0) Probe(x, -1, N_X);
-                break;
-              case 2:
-                if (y + 1 < N_Y) Probe(y, 1, N_Y);
-                if (y - 1 > 0) Probe(y, -1, N_Y);
-                break;
-              case 1:
-                if (z + 1 < N_Z) Probe(z, 1, N_Z);
-                if (z - 1 > 0) Probe(z, -1, N_Z);
-                break;
-            }
+  auto th = [&, this, raw, task, vis] {
+    int id = -1;
+    while (task_left.load()) {
+      if (id >= 0) {
+        unique_lock<mutex> lock{this->m_lock};
+        int x = id / (N_Y * N_Z);
+        id %= (N_Y * N_Z);
+        int y = id / N_Z;
+        int z = id % N_Z;
+        const int code = (x & 1) << 2 | (y & 1) << 1 | (z & 1);
+        if (GrayCodeOrder[code] != 7) {
+          const int nxt_code = GrayCode[GrayCodeOrder[code] + 1];
+          const int delta = code ^ nxt_code;
+          switch (delta) {
+            case 4:
+              if (x + 1 < N_X) Probe(x, 1, N_X); x -=2;
+              if (x - 1 >= 0) Probe(x, -1, N_X);
+              break;
+            case 2:
+              if (y + 1 < N_Y) Probe(y, 1, N_Y); y -= 2;
+              if (y - 1 >= 0) Probe(y, -1, N_Y);
+              break;
+            case 1:
+              if (z + 1 < N_Z) Probe(z, 1, N_Z); z -= 2;
+              if (z - 1 >= 0) Probe(z, -1, N_Z);
+              break;
           }
         }
-        {
-          unique_lock<mutex> lock{this->m_lock};
-          assert(!task_list.empty());
-          id = task_list.top();
-          task_list.pop();
-          vis[id] = true;
-          task_left--;
-          printf("%d with size %ld (%d left) from %d\n", id, task[id].size(),
-                 task_left.load(), i);
-        }
-        printf("b%d\n", id);
-        ConvolutionAdjCore(raw, task[id]);
-        printf("e%d\n", id);
       }
-    });
-    th.detach();
-  }
-  while (task_left.load())
-    ;
+      {
+        unique_lock<mutex> lock{this->m_lock};
+        assert(!task_list.empty());
+        id = task_list.front();
+        // id = task_list.top();
+        task_list.pop();
+        task_left--;
+      }
+      ConvolutionAdjCore(raw, task[id]);
+      vis[id] = true;
+    }
+  };
+  th();
+  delete[] in_queue;
   delete[] vis;
   delete[] task;
 }
-
 #undef Probe
 
 /* Adjoint NUFFT transform */

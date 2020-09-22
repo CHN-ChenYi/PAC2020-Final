@@ -3,11 +3,11 @@
 
 #include <fftw3.h>
 #include <malloc.h>
-#include <mutex>
-#include <atomic>
-#include <queue>
 
+#include <atomic>
 #include <complex>
+#include <mutex>
+#include <queue>
 
 #include "MathOps.h"
 
@@ -43,7 +43,7 @@ class NUFFT3D {
   float* q;
 
   static const int N_X, N_Y, N_Z;
-  static int *const task_count;
+  static int* const task_count;
   struct cmp {
     bool operator()(const int left, const int right) {
       return task_count[left] > task_count[right];
@@ -51,7 +51,8 @@ class NUFFT3D {
   };
   std::mutex m_lock;
   std::atomic<int> task_left;
-  std::priority_queue<int, vector<int>, cmp> task_list;
+  // std::priority_queue<int, vector<int>, cmp> task_list;
+  std::queue<int> task_list;
   static const int GrayCode[8], GrayCodeOrder[8];
   void ConvolutionAdj(complex<float>*);
   void ConvolutionAdjCore(complex<float>*, vector<int>&);
