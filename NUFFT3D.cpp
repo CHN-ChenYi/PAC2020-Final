@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <queue>
+#include <thread>
 #include <vector>
 
 #include "common.h"
@@ -7,6 +8,8 @@
 using std::lower_bound;
 using std::priority_queue;
 using std::sort;
+using std::thread;
+using std::unique_lock;
 using std::vector;
 
 TDEF(fftw)
@@ -219,8 +222,19 @@ void NUFFT3D::ConvolutionAdjCore(complex<float>* raw, vector<int>& task) {
   }
 }
 
+extern int numThreads;
+
+#define Probe(dimension, delta)                             \
+  {                                                         \
+    dimension += delta;                                     \
+    const int probe_id = x * N_Y * N_Z + y * N_Z + z;       \
+    dimension += delta;                                     \
+    if (!vis[probe_id] && vis[x * N_Y * N_Z + y * N_Z + z]) \
+      task_list.push(probe_id);                             \
+  }
+
 void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
-  float *tmp_w = new float[P];
+  float* tmp_w = new float[P];
   float wx_bounds[N_X], wy_bounds[N_Y], wz_bounds[N_Z];
   // find the boundaries of x
 #pragma omp parallel for schedule(static)
@@ -242,11 +256,11 @@ void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
   for (int p = 0; p < N_Z; p++) wz_bounds[p] = tmp_w[P * (p + 1) / N_Z - 1];
   delete tmp_w;
 
-    // find the task for each point
+  // find the task for each point
 #pragma omp parallel for schedule(static)
   for (int i = 0; i < N_X * N_Y * N_Z; i++) task_count[i] = 0;
-  vector<int> *task = new vector<int>[N_X * N_Y * N_Z];
-// #pragma omp parallel for schedule(guided)
+  vector<int>* task = new vector<int>[N_X * N_Y * N_Z];
+  // #pragma omp parallel for schedule(guided)
   for (int p = 0; p < P; p++) {
     const int x = lower_bound(wx_bounds, wx_bounds + N_X, wx[p]) - wx_bounds;
     const int y = lower_bound(wy_bounds, wy_bounds + N_Y, wy[p]) - wy_bounds;
@@ -257,10 +271,69 @@ void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
   }
 
   // assign the task to tasklists
-  // priority_queue<int, vector<int>, cmp> task_list;
-  for (int i = 0; i < N_X * N_Y * N_Z; i++)
-    ConvolutionAdjCore(raw, task[i]);
-  delete []task;
+  priority_queue<int, vector<int>, cmp> task_list;
+  bool* vis = new bool[N_X * N_Y * N_Z];
+#pragma omp parallel for schedule(static)
+  for (int i = 0; i < N_X * N_Y * N_Z; i++) vis[i] = false;
+  task_left = N_X * N_Y * N_Z;
+  for (int i = 0; i < N_X; i += 2) {
+    for (int j = 0; j < N_Y; j += 2) {
+      for (int k = 0; k < N_Z; k += 2)
+        task_list.push(i * N_Y * N_Z + j * N_Z + k);
+    }
+  }
+  for (int i = 0; i < numThreads; i++) {
+    thread th([&, this, raw, task, task_list, vis] {
+      int id = -1;
+      while (task_left) {
+        if (id >= 0) {
+          unique_lock<mutex> lock{this->m_lock};
+          int x = id / (N_Y * N_Z);
+          id %= (N_Y * N_Z);
+          int y = id / N_Z;
+          int z = id % N_Z;
+          const int code = (x & 1) << 2 | (y & 1) << 1 || (z & 1);
+          if (GrayCodeOrder[code] != 7) {
+            const int nxt_code = GrayCode[GrayCodeOrder[code] + 1];
+            const int delta = code ^ nxt_code;
+            switch (delta) {
+              case 4: {
+                x += 1;
+                int probe_id = x * N_Y * N_Z + y * N_Z + z;
+                x += 1;
+                if (!vis[probe_id] && vis[x * N_Y * N_Z + y * N_Z + z])
+                  task_list.push(probe_id);
+              }
+                // Probe(x, 1);
+                // Probe(x, -1);
+                break;
+              case 2:
+                // Probe(y, 1);
+                // Probe(y, -1);
+                break;
+              case 1:
+                // Probe(z, 1);
+                // Probe(z, -1);
+                break;
+            }
+          }
+        }
+        {
+          unique_lock<mutex> lock{this->m_lock};
+          id = task_list.top();
+          task_list.pop();
+          vis[id] = true;
+          task_left.store(task_left - 1);
+        }
+        ConvolutionAdjCore(raw, task[id]);
+      }
+    });
+    th.detach();
+  }
+  while (task_left)
+    ;
+  delete[] vis;
+  delete[] task;
 }
 
 /* Adjoint NUFFT transform */

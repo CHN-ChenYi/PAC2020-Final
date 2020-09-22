@@ -3,6 +3,8 @@
 
 #include <fftw3.h>
 #include <malloc.h>
+#include <mutex>
+#include <atomic>
 
 #include <complex>
 
@@ -46,6 +48,8 @@ class NUFFT3D {
       return task_count[left] > task_count[right];
     }
   };
+  std::mutex m_lock;
+  std::atomic<int> task_left;
   static const int GrayCode[8], GrayCodeOrder[8];
   void ConvolutionAdj(complex<float>*);
   void ConvolutionAdjCore(complex<float>*, vector<int>&);
