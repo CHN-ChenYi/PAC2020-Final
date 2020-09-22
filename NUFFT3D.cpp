@@ -273,7 +273,7 @@ void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
     task_count[id]++;
   }
 
-  int PEE = 1;
+  int PEE = 2;
   // assign the task to tasklists
   bool *in_queue = new bool[N_X * N_Y * N_Z], *vis = new bool[N_X * N_Y * N_Z];
   thread* thread_pool = new thread[PEE];
@@ -287,7 +287,7 @@ void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
     }
   }
   for (int i = 0; i < PEE; i++) {
-    thread_pool[i] = thread([&, this, raw, task, vis] {
+    thread_pool[i] = thread([&, i, this, raw, task, vis] {
       int id = -1;
       while (task_left.load()) {
         if (id >= 0) {
@@ -319,21 +319,24 @@ void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
             }
           }
         }
-        {
+        id = -1;
+        while (task_left.load()) {
           unique_lock<mutex> lock{this->m_lock};
-          assert(!task_list.empty());
+          if (task_list.empty()) continue;
           id = task_list.front();
           // id = task_list.top();
           task_list.pop();
           task_left--;
+          break;
         }
+        if (id < 0) break;
+        printf("%d from %d\n", id, i);
         ConvolutionAdjCore(raw, task[id]);
         vis[id] = true;
       }
     });
   }
-  for (int i = 0; i < PEE; i++)
-    thread_pool[i].join();
+  for (int i = 0; i < PEE; i++) thread_pool[i].join();
   delete[] thread_pool;
   delete[] in_queue;
   delete[] vis;
