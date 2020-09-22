@@ -4,10 +4,11 @@ TDEF(fftw)
 TDEF(nufft)
 
 /* Constructor */
-NUFFT3D::NUFFT3D(int N, int OF, float* wx, float* wy, float* wz, int P,
+NUFFT3D::NUFFT3D(int N, int OF, float *wx, float *wy, float *wz, int P,
                  int prechopX, int prechopY, int prechopZ, int postchopX,
                  int postchopY, int postchopZ, int offsetX, int offsetY,
-                 int offsetZ, int W, int L) {
+                 int offsetZ, int W, int L)
+{
   // Assignments
   this->N = N;
   this->OF = OF;
@@ -29,19 +30,20 @@ NUFFT3D::NUFFT3D(int N, int OF, float* wx, float* wy, float* wz, int P,
   this->L = L;
 
   int DIMS[3] = {N2, N2, N2};
-  f = (complex<float>*)memalign(16, N2 * N2 * N2 * sizeof(complex<float>));
-  fwdPlan = fftwf_plan_dft(3, DIMS, reinterpret_cast<fftwf_complex*>(f),
-                           reinterpret_cast<fftwf_complex*>(f), FFTW_FORWARD,
+  f = (complex<float> *)memalign(16, N2 * N2 * N2 * sizeof(complex<float>));
+  fwdPlan = fftwf_plan_dft(3, DIMS, reinterpret_cast<fftwf_complex *>(f),
+                           reinterpret_cast<fftwf_complex *>(f), FFTW_FORWARD,
                            FFTW_ESTIMATE);
-  adjPlan = fftwf_plan_dft(3, DIMS, reinterpret_cast<fftwf_complex*>(f),
-                           reinterpret_cast<fftwf_complex*>(f), FFTW_BACKWARD,
+  adjPlan = fftwf_plan_dft(3, DIMS, reinterpret_cast<fftwf_complex *>(f),
+                           reinterpret_cast<fftwf_complex *>(f), FFTW_BACKWARD,
                            FFTW_ESTIMATE);
   buildLUT();
   getScalingFunction();
 }
 
 /* Destructor */
-NUFFT3D::~NUFFT3D() {
+NUFFT3D::~NUFFT3D()
+{
   fftwf_destroy_plan(fwdPlan);
   fftwf_destroy_plan(adjPlan);
   free(f);
@@ -49,28 +51,50 @@ NUFFT3D::~NUFFT3D() {
 }
 
 /* Initialize multithreaded FFTW (p threads) */
-void NUFFT3D::init(int nThreads) {
+void NUFFT3D::init(int nThreads)
+{
   fftwf_init_threads();
   fftwf_plan_with_nthreads(nThreads);
 }
 
+complex<float> *mySum(complex<float> *out, complex<float> *in)
+{
+  int N2 = 440;
+  int top = N2 * N2 * N2;
+  for (int i = 0; i < top; ++i)
+    out[i] += in[i];
+  free(in);
+  return out;
+}
+
+complex<float> *myInit()
+{
+  int N2 = 440;
+  return (complex<float> *)memalign(16, N2 * N2 * N2 * sizeof(complex<float>));
+}
+
 /* Forward NUFFT transform */
-void NUFFT3D::fwd(complex<float>* u, complex<float>* raw) {
+void NUFFT3D::fwd(complex<float> *u, complex<float> *raw)
+{
   // Apodization and zero-padding
   int startX = N * (OF - 1) / 2;
   int startY = N * (OF - 1) / 2;
   int startZ = N * (OF - 1) / 2;
   TSTART(nufft);
   TSTART(fftw);
-  for (int i = 0; i < N2 * N2 * N2; i++) {
+  for (int i = 0; i < N2 * N2 * N2; i++)
+  {
     f[i] = 0;
   }
   TEND(fftw);
   TPRINT(fftw, "  Init_F FWD");
   TSTART(fftw);
-  for (int x = 0; x < N; x++) {
-    for (int y = 0; y < N; y++) {
-      for (int z = 0; z < N; z++) {
+  for (int x = 0; x < N; x++)
+  {
+    for (int y = 0; y < N; y++)
+    {
+      for (int z = 0; z < N; z++)
+      {
         f[(x + startX + offsetX) * N2 * N2 + (y + startY + offsetY) * N2 +
           (z + startZ + offsetZ)] =
             u[x * N * N + y * N + z] / q[x * N * N + y * N + z];
@@ -97,7 +121,8 @@ void NUFFT3D::fwd(complex<float>* u, complex<float>* raw) {
   // Pull from grid
   TSTART(fftw);
 #pragma omp parallel for schedule(guided)
-  for (int p = 0; p < P; p++) {
+  for (int p = 0; p < P; p++)
+  {
     int kx2[2 * W + 1];
     int ky2[2 * W + 1];
     int kz2[2 * W + 1];
@@ -110,7 +135,8 @@ void NUFFT3D::fwd(complex<float>* u, complex<float>* raw) {
     int x1 = (int)ceil(kx - W);
     int x2 = (int)floor(kx + W);
     int lx = x2 - x1 + 1;
-    for (int nx = 0; nx < lx; nx++) {
+    for (int nx = 0; nx < lx; nx++)
+    {
       kx2[nx] = mod(nx + x1, N2);
       winX[nx] = LUT[(int)round(((L - 1) / W) * abs(nx + x1 - kx))];
     }
@@ -120,7 +146,8 @@ void NUFFT3D::fwd(complex<float>* u, complex<float>* raw) {
     int y1 = (int)ceil(ky - W);
     int y2 = (int)floor(ky + W);
     int ly = y2 - y1 + 1;
-    for (int ny = 0; ny < ly; ny++) {
+    for (int ny = 0; ny < ly; ny++)
+    {
       ky2[ny] = mod(ny + y1, N2);
       winY[ny] = LUT[(int)round(((L - 1) / W) * abs(ny + y1 - ky))];
     }
@@ -130,16 +157,20 @@ void NUFFT3D::fwd(complex<float>* u, complex<float>* raw) {
     int z1 = (int)ceil(kz - W);
     int z2 = (int)floor(kz + W);
     int lz = z2 - z1 + 1;
-    for (int nz = 0; nz < lz; nz++) {
+    for (int nz = 0; nz < lz; nz++)
+    {
       kz2[nz] = mod(nz + z1, N2);
       winZ[nz] = LUT[(int)round(((L - 1) / W) * abs(nz + z1 - kz))];
     }
 
     // Interpolation
     raw[p] = 0;
-    for (int nx = 0; nx < lx; nx++) {
-      for (int ny = 0; ny < ly; ny++) {
-        for (int nz = 0; nz < lz; nz++) {
+    for (int nx = 0; nx < lx; nx++)
+    {
+      for (int ny = 0; ny < ly; ny++)
+      {
+        for (int nz = 0; nz < lz; nz++)
+        {
           raw[p] += f[kx2[nx] * N2 * N2 + ky2[ny] * N2 + kz2[nz]] * winX[nx] *
                     winY[ny] * winZ[nz];
         }
@@ -153,18 +184,21 @@ void NUFFT3D::fwd(complex<float>* u, complex<float>* raw) {
 }
 
 /* Adjoint NUFFT transform */
-void NUFFT3D::adj(complex<float>* raw, complex<float>* u) {
+void NUFFT3D::adj(complex<float> *raw, complex<float> *u)
+{
   TSTART(nufft);
 
   // Push to grid
   TSTART(fftw);
-  for (int i = 0; i < N2 * N2 * N2; i++) {
+  for (int i = 0; i < N2 * N2 * N2; i++)
+  {
     f[i] = 0;
   }
   TEND(fftw);
   TPRINT(fftw, "  Init_F ADJ");
   TSTART(fftw)
-  for (int p = 0; p < P; p++) {
+  for (int p = 0; p < P; p++)
+  {
     int kx2[2 * W + 1];
     int ky2[2 * W + 1];
     int kz2[2 * W + 1];
@@ -177,7 +211,8 @@ void NUFFT3D::adj(complex<float>* raw, complex<float>* u) {
     int x1 = (int)ceil(kx - W);
     int x2 = (int)floor(kx + W);
     int lx = x2 - x1 + 1;
-    for (int nx = 0; nx < lx; nx++) {
+    for (int nx = 0; nx < lx; nx++)
+    {
       kx2[nx] = mod(nx + x1, N2);
       winX[nx] = LUT[(int)round(((L - 1) / W) * abs(nx + x1 - kx))];
     }
@@ -187,7 +222,8 @@ void NUFFT3D::adj(complex<float>* raw, complex<float>* u) {
     int y1 = (int)ceil(ky - W);
     int y2 = (int)floor(ky + W);
     int ly = y2 - y1 + 1;
-    for (int ny = 0; ny < ly; ny++) {
+    for (int ny = 0; ny < ly; ny++)
+    {
       ky2[ny] = mod(ny + y1, N2);
       winY[ny] = LUT[(int)round(((L - 1) / W) * abs(ny + y1 - ky))];
     }
@@ -197,15 +233,26 @@ void NUFFT3D::adj(complex<float>* raw, complex<float>* u) {
     int z1 = (int)ceil(kz - W);
     int z2 = (int)floor(kz + W);
     int lz = z2 - z1 + 1;
-    for (int nz = 0; nz < lz; nz++) {
+    for (int nz = 0; nz < lz; nz++)
+    {
       kz2[nz] = mod(nz + z1, N2);
       winZ[nz] = LUT[(int)round(((L - 1) / W) * abs(nz + z1 - kz))];
     }
 
     // Interpolation
-    for (int nx = 0; nx < lx; nx++) {
-      for (int ny = 0; ny < ly; ny++) {
-        for (int nz = 0; nz < lz; nz++) {
+
+#pragma omp declare reduction(addf                               \
+                              : complex <float> *                \
+                              : omp_out = mySum(omp_out, omp_in) \
+                                    initializer(omp_priv = myInit())
+
+#pragma omp parallel reduction(addf:f)
+    for (int nx = 0; nx < lx; nx++)
+    {
+      for (int ny = 0; ny < ly; ny++)
+      {
+        for (int nz = 0; nz < lz; nz++)
+        {
           f[kx2[nx] * N2 * N2 + ky2[ny] * N2 + kz2[nz]] +=
               raw[p] * winX[nx] * winY[ny] * winZ[nz];
         }
@@ -232,15 +279,19 @@ void NUFFT3D::adj(complex<float>* raw, complex<float>* u) {
   int startY = N * (OF - 1) / 2;
   int startZ = N * (OF - 1) / 2;
   TSTART(fftw);
-  for (int i = 0; i < N * N * N; i++) {
+  for (int i = 0; i < N * N * N; i++)
+  {
     u[i] = 0;
   }
   TEND(fftw);
   TPRINT(fftw, "  Init_U ADJ");
   TSTART(fftw)
-  for (int x = 0; x < N; x++) {
-    for (int y = 0; y < N; y++) {
-      for (int z = 0; z < N; z++) {
+  for (int x = 0; x < N; x++)
+  {
+    for (int y = 0; y < N; y++)
+    {
+      for (int z = 0; z < N; z++)
+      {
         u[x * N * N + y * N + z] =
             f[(x + startX + offsetX) * N2 * N2 + (y + startY + offsetY) * N2 +
               (z + startZ + offsetZ)] /
@@ -257,14 +308,16 @@ void NUFFT3D::adj(complex<float>* raw, complex<float>* u) {
 
 /* Internal lookup table generation function for interpolation kernel
  * (Kaiser-Bessel) */
-void NUFFT3D::buildLUT() {
+void NUFFT3D::buildLUT()
+{
   LUT = new float[L];
-  float* d = linspace<float>(0, W, L);
+  float *d = linspace<float>(0, W, L);
   float pi = boost::math::constants::pi<float>();
   float alpha = pi * sqrt(((2 * (float)W / OF) * (OF - 0.5)) *
                               ((2 * (float)W / OF) * (OF - 0.5)) -
                           0.8);
-  for (int l = 0; l < L; l++) {
+  for (int l = 0; l < L; l++)
+  {
     LUT[l] = boost::math::cyl_bessel_i(
                  0, alpha * sqrt(1 - (d[l] * d[l]) / (W * W))) /
              boost::math::cyl_bessel_i(0, alpha);
@@ -272,20 +325,25 @@ void NUFFT3D::buildLUT() {
 }
 
 /* Internal scaling generation function */
-void NUFFT3D::getScalingFunction() {
+void NUFFT3D::getScalingFunction()
+{
   float dx, dy, dz;
   float s = 0;
 
   // Create a volume with a copy of the interpolation kernel centered at the
   // origin, then normalize
-  for (int i = 0; i < N2 * N2 * N2; i++) {
+  for (int i = 0; i < N2 * N2 * N2; i++)
+  {
     f[i] = 0;
   }
-  for (int x = N2 / 2 - W; x <= N2 / 2 + W; x++) {
+  for (int x = N2 / 2 - W; x <= N2 / 2 + W; x++)
+  {
     dx = abs(((float)x - N2 / 2) / W);
-    for (int y = N2 / 2 - W; y <= N2 / 2 + W; y++) {
+    for (int y = N2 / 2 - W; y <= N2 / 2 + W; y++)
+    {
       dy = abs(((float)y - N2 / 2) / W);
-      for (int z = N2 / 2 - W; z <= N2 / 2 + W; z++) {
+      for (int z = N2 / 2 - W; z <= N2 / 2 + W; z++)
+      {
         dz = abs(((float)z - N2 / 2) / W);
         f[x * N2 * N2 + y * N2 + z] = complex<float>(
             LUT[(int)round((L - 1) * dx)] * LUT[(int)round((L - 1) * dy)] *
@@ -296,9 +354,12 @@ void NUFFT3D::getScalingFunction() {
     }
   }
   s = sqrt(s);
-  for (int x = N2 / 2 - W; x <= N2 / 2 + W; x++) {
-    for (int y = N2 / 2 - W; y <= N2 / 2 + W; y++) {
-      for (int z = N2 / 2 - W; z <= N2 / 2 + W; z++) {
+  for (int x = N2 / 2 - W; x <= N2 / 2 + W; x++)
+  {
+    for (int y = N2 / 2 - W; y <= N2 / 2 + W; y++)
+    {
+      for (int z = N2 / 2 - W; z <= N2 / 2 + W; z++)
+      {
         f[x * N2 * N2 + y * N2 + z] = f[x * N2 * N2 + y * N2 + z] / s;
       }
     }
@@ -315,12 +376,16 @@ void NUFFT3D::getScalingFunction() {
   int startX = N * (OF - 1) / 2;
   int startY = N * (OF - 1) / 2;
   int startZ = N * (OF - 1) / 2;
-  for (int i = 0; i < N * N * N; i++) {
+  for (int i = 0; i < N * N * N; i++)
+  {
     q[i] = 0;
   }
-  for (int x = 0; x < N; x++) {
-    for (int y = 0; y < N; y++) {
-      for (int z = 0; z < N; z++) {
+  for (int x = 0; x < N; x++)
+  {
+    for (int y = 0; y < N; y++)
+    {
+      for (int z = 0; z < N; z++)
+      {
         q[x * N * N + y * N + z] =
             real(f[(x + startX + offsetX) * N2 * N2 +
                    (y + startY + offsetY) * N2 + (z + startZ + offsetZ)]);
