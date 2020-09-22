@@ -1,12 +1,10 @@
 #include <algorithm>
-#include <queue>
 #include <thread>
 #include <vector>
 
 #include "common.h"
 
 using std::lower_bound;
-using std::priority_queue;
 using std::sort;
 using std::thread;
 using std::unique_lock;
@@ -271,7 +269,6 @@ void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
   }
 
   // assign the task to tasklists
-  priority_queue<int, vector<int>, cmp> task_list;
   bool* vis = new bool[N_X * N_Y * N_Z];
 #pragma omp parallel for schedule(static)
   for (int i = 0; i < N_X * N_Y * N_Z; i++) vis[i] = false;
@@ -283,7 +280,7 @@ void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
     }
   }
   for (int i = 0; i < numThreads; i++) {
-    thread th([&, this, raw, task, task_list, vis] {
+    thread th([&, this, raw, task, vis] {
       int id = -1;
       while (task_left) {
         if (id >= 0) {
@@ -297,23 +294,16 @@ void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
             const int nxt_code = GrayCode[GrayCodeOrder[code] + 1];
             const int delta = code ^ nxt_code;
             switch (delta) {
-              case 4: {
-                x += 1;
-                int probe_id = x * N_Y * N_Z + y * N_Z + z;
-                x += 1;
-                if (!vis[probe_id] && vis[x * N_Y * N_Z + y * N_Z + z])
-                  task_list.push(probe_id);
-              }
-                // Probe(x, 1);
-                // Probe(x, -1);
+                Probe(x, 1);
+                Probe(x, -1);
                 break;
               case 2:
-                // Probe(y, 1);
-                // Probe(y, -1);
+                Probe(y, 1);
+                Probe(y, -1);
                 break;
               case 1:
-                // Probe(z, 1);
-                // Probe(z, -1);
+                Probe(z, 1);
+                Probe(z, -1);
                 break;
             }
           }
@@ -335,6 +325,8 @@ void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
   delete[] vis;
   delete[] task;
 }
+
+#undef Probe
 
 /* Adjoint NUFFT transform */
 void NUFFT3D::adj(complex<float>* raw, complex<float>* u) {
