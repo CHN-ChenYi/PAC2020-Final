@@ -238,6 +238,9 @@ extern int numThreads;
   }
 
 void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
+  TDEF(init);
+  TSTART(init);
+
   float* tmp_w = new float[P];
   float wx_bounds[N_X], wy_bounds[N_Y], wz_bounds[N_Z];
   // find the boundaries of x
@@ -286,6 +289,10 @@ void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
         task_list.push(i * N_Y * N_Z + j * N_Z + k);
     }
   }
+
+  TEND(init);
+  TPRINT(init, "  Init Convolution ADJ");
+
   for (int i = 0; i < numThreads; i++) {
     thread_pool[i] = thread([&, i, this, raw, task, vis] {
       int id = -1;
