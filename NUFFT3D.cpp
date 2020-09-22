@@ -284,7 +284,7 @@ void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
         task_list.push(i * N_Y * N_Z + j * N_Z + k);
     }
   }
-  auto th = [&, this, raw, task, vis] {
+  thread th([&, this, raw, task, vis] {
     int id = -1;
     while (task_left.load()) {
       if (id >= 0) {
@@ -299,15 +299,18 @@ void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
           const int delta = code ^ nxt_code;
           switch (delta) {
             case 4:
-              if (x + 1 < N_X) Probe(x, 1, N_X); x -=2;
+              if (x + 1 < N_X) Probe(x, 1, N_X);
+              x -= 2;
               if (x - 1 >= 0) Probe(x, -1, N_X);
               break;
             case 2:
-              if (y + 1 < N_Y) Probe(y, 1, N_Y); y -= 2;
+              if (y + 1 < N_Y) Probe(y, 1, N_Y);
+              y -= 2;
               if (y - 1 >= 0) Probe(y, -1, N_Y);
               break;
             case 1:
-              if (z + 1 < N_Z) Probe(z, 1, N_Z); z -= 2;
+              if (z + 1 < N_Z) Probe(z, 1, N_Z);
+              z -= 2;
               if (z - 1 >= 0) Probe(z, -1, N_Z);
               break;
           }
@@ -324,8 +327,8 @@ void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
       ConvolutionAdjCore(raw, task[id]);
       vis[id] = true;
     }
-  };
-  th();
+  });
+  th.join();
   delete[] in_queue;
   delete[] vis;
   delete[] task;
