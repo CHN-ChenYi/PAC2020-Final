@@ -273,8 +273,10 @@ void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
     task_count[id]++;
   }
 
+  int PEE = 1;
   // assign the task to tasklists
   bool *in_queue = new bool[N_X * N_Y * N_Z], *vis = new bool[N_X * N_Y * N_Z];
+  thread* thread_pool = new thread[PEE];
 #pragma omp parallel for schedule(static)
   for (int i = 0; i < N_X * N_Y * N_Z; i++) in_queue[i] = vis[i] = false;
   task_left = N_X * N_Y * N_Z;
@@ -284,51 +286,55 @@ void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
         task_list.push(i * N_Y * N_Z + j * N_Z + k);
     }
   }
-  thread th([&, this, raw, task, vis] {
-    int id = -1;
-    while (task_left.load()) {
-      if (id >= 0) {
-        unique_lock<mutex> lock{this->m_lock};
-        int x = id / (N_Y * N_Z);
-        id %= (N_Y * N_Z);
-        int y = id / N_Z;
-        int z = id % N_Z;
-        const int code = (x & 1) << 2 | (y & 1) << 1 | (z & 1);
-        if (GrayCodeOrder[code] != 7) {
-          const int nxt_code = GrayCode[GrayCodeOrder[code] + 1];
-          const int delta = code ^ nxt_code;
-          switch (delta) {
-            case 4:
-              if (x + 1 < N_X) Probe(x, 1, N_X);
-              x -= 2;
-              if (x - 1 >= 0) Probe(x, -1, N_X);
-              break;
-            case 2:
-              if (y + 1 < N_Y) Probe(y, 1, N_Y);
-              y -= 2;
-              if (y - 1 >= 0) Probe(y, -1, N_Y);
-              break;
-            case 1:
-              if (z + 1 < N_Z) Probe(z, 1, N_Z);
-              z -= 2;
-              if (z - 1 >= 0) Probe(z, -1, N_Z);
-              break;
+  for (int i = 0; i < PEE; i++) {
+    thread_pool[i] = thread([&, this, raw, task, vis] {
+      int id = -1;
+      while (task_left.load()) {
+        if (id >= 0) {
+          unique_lock<mutex> lock{this->m_lock};
+          int x = id / (N_Y * N_Z);
+          id %= (N_Y * N_Z);
+          int y = id / N_Z;
+          int z = id % N_Z;
+          const int code = (x & 1) << 2 | (y & 1) << 1 | (z & 1);
+          if (GrayCodeOrder[code] != 7) {
+            const int nxt_code = GrayCode[GrayCodeOrder[code] + 1];
+            const int delta = code ^ nxt_code;
+            switch (delta) {
+              case 4:
+                if (x + 1 < N_X) Probe(x, 1, N_X);
+                x -= 2;
+                if (x - 1 >= 0) Probe(x, -1, N_X);
+                break;
+              case 2:
+                if (y + 1 < N_Y) Probe(y, 1, N_Y);
+                y -= 2;
+                if (y - 1 >= 0) Probe(y, -1, N_Y);
+                break;
+              case 1:
+                if (z + 1 < N_Z) Probe(z, 1, N_Z);
+                z -= 2;
+                if (z - 1 >= 0) Probe(z, -1, N_Z);
+                break;
+            }
           }
         }
+        {
+          unique_lock<mutex> lock{this->m_lock};
+          assert(!task_list.empty());
+          id = task_list.front();
+          // id = task_list.top();
+          task_list.pop();
+          task_left--;
+        }
+        ConvolutionAdjCore(raw, task[id]);
+        vis[id] = true;
       }
-      {
-        unique_lock<mutex> lock{this->m_lock};
-        assert(!task_list.empty());
-        id = task_list.front();
-        // id = task_list.top();
-        task_list.pop();
-        task_left--;
-      }
-      ConvolutionAdjCore(raw, task[id]);
-      vis[id] = true;
-    }
-  });
-  th.join();
+    });
+  }
+  for (int i = 0; i < PEE; i++)
+    thread_pool[i].join();
+  delete[] thread_pool;
   delete[] in_queue;
   delete[] vis;
   delete[] task;
