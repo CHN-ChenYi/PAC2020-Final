@@ -332,13 +332,15 @@ void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
             return !this->task_left.load() || !task_list.empty();
           });
           if (!this->task_left.load()) break;
-          id = task_list.front();
-          // id = task_list.top();
+          id = task_list.top();
           task_list.pop();
           task_left--;
           break;
         }
-        if (id < 0) break;
+        if (id < 0) {
+          cv_task.notify_all();
+          break;
+        }
         ConvolutionAdjCore(raw, task[id]);
         vis[id] = true;
       }

@@ -53,8 +53,7 @@ class NUFFT3D {
   std::mutex m_lock;
   std::condition_variable cv_task;
   std::atomic<int> task_left;
-  // std::priority_queue<int, vector<int>, cmp> task_list;
-  std::queue<int> task_list;
+  std::priority_queue<int, vector<int>, cmp> task_list;
   static const int GrayCode[8], GrayCodeOrder[8];
   void ConvolutionAdj(complex<float>*);
   void ConvolutionAdjCore(complex<float>*, vector<int>&);
