@@ -48,6 +48,7 @@ class NUFFT3D {
   };
   static const int GrayCode[8], GrayCodeOrder[8];
   void ConvolutionAdj(complex<float>*);
+  void ConvolutionAdjCore(complex<float>*, vector<int>&);
 
  public:
   NUFFT3D(int, int, float*, float*, float*, int, int, int, int, int, int, int,

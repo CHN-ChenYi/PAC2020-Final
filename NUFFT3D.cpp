@@ -15,7 +15,7 @@ TDEF(nufft)
 const int NUFFT3D::N_X = 64;
 const int NUFFT3D::N_Y = 64;
 const int NUFFT3D::N_Z = 64;
-int *const NUFFT3D::task_count = new int[N_X * N_Y * N_Z];
+int* const NUFFT3D::task_count = new int[N_X * N_Y * N_Z];
 const int NUFFT3D::GrayCode[8] = {0, 1, 3, 2, 6, 7, 5, 4};
 const int NUFFT3D::GrayCodeOrder[8] = {0, 1, 3, 2, 7, 6, 4, 5};
 
@@ -168,46 +168,8 @@ void NUFFT3D::fwd(complex<float>* u, complex<float>* raw) {
   TPRINT(nufft, "NUFFT FWD");
 }
 
-void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
-  float tmp_w[P];
-  float wx_bounds[N_X], wy_bounds[N_Y], wz_bounds[N_Z];
-  // find the boundaries of x
-#pragma omp parallel for schedule(static)
-  for (int p = 0; p < P; p++) tmp_w[p] = wx[p];
-  sort(tmp_w, tmp_w + P);
-#pragma omp parallel for schedule(static)
-  for (int p = 0; p < N_X; p++) wx_bounds[p] = tmp_w[P * p / N_X];
-    // find the boundaries of y
-#pragma omp parallel for schedule(static)
-  for (int p = 0; p < P; p++) tmp_w[p] = wy[p];
-  sort(tmp_w, tmp_w + P);
-#pragma omp parallel for schedule(static)
-  for (int p = 0; p < N_Y; p++) wy_bounds[p] = tmp_w[P * p / N_Y];
-    // find the boundaries of z
-#pragma omp parallel for schedule(static)
-  for (int p = 0; p < P; p++) tmp_w[p] = wz[p];
-  sort(tmp_w, tmp_w + P);
-#pragma omp parallel for schedule(static)
-  for (int p = 0; p < N_Z; p++) wz_bounds[p] = tmp_w[P * p / N_Z];
-
-  // find the task for each point
-#pragma omp parallel for schedule(static)
-  for (int i = 0; i < N_X * N_Y * N_Z; i++) task_count[i] = 0;
-  vector<int> task[N_X * N_Y * N_Z];
-#pragma omp parallel for schedule(guided)
-  for (int p = 0; p < P; p++) {
-    const int x = lower_bound(wx_bounds, wx_bounds + N_X, wx[p]) - wx_bounds;
-    const int y = lower_bound(wy_bounds, wy_bounds + N_Y, wy[p]) - wy_bounds;
-    const int z = lower_bound(wz_bounds, wz_bounds + N_Z, wz[p]) - wz_bounds;
-    const int id = x * N_Y * N_Z + y * N_Z + z;
-    task[id].push_back(p);
-    task_count[id]++;
-  }
-
-  // assign the task to tasklists
-  priority_queue<int, vector<int>, cmp> task_list;
-
-  for (int p = 0; p < P; p++) {
+void NUFFT3D::ConvolutionAdjCore(complex<float>* raw, vector<int>& task) {
+  for (int& p : task) {
     int kx2[2 * W + 1];
     int ky2[2 * W + 1];
     int kz2[2 * W + 1];
@@ -255,7 +217,50 @@ void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
       }
     }
   }
+}
 
+void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
+  float *tmp_w = new float[P];
+  float wx_bounds[N_X], wy_bounds[N_Y], wz_bounds[N_Z];
+  // find the boundaries of x
+#pragma omp parallel for schedule(static)
+  for (int p = 0; p < P; p++) tmp_w[p] = wx[p];
+  sort(tmp_w, tmp_w + P);
+#pragma omp parallel for schedule(static)
+  for (int p = 0; p < N_X; p++) wx_bounds[p] = tmp_w[P * (p + 1) / N_X - 1];
+    // find the boundaries of y
+#pragma omp parallel for schedule(static)
+  for (int p = 0; p < P; p++) tmp_w[p] = wy[p];
+  sort(tmp_w, tmp_w + P);
+#pragma omp parallel for schedule(static)
+  for (int p = 0; p < N_Y; p++) wy_bounds[p] = tmp_w[P * (p + 1) / N_Y - 1];
+    // find the boundaries of z
+#pragma omp parallel for schedule(static)
+  for (int p = 0; p < P; p++) tmp_w[p] = wz[p];
+  sort(tmp_w, tmp_w + P);
+#pragma omp parallel for schedule(static)
+  for (int p = 0; p < N_Z; p++) wz_bounds[p] = tmp_w[P * (p + 1) / N_Z - 1];
+  delete tmp_w;
+
+    // find the task for each point
+#pragma omp parallel for schedule(static)
+  for (int i = 0; i < N_X * N_Y * N_Z; i++) task_count[i] = 0;
+  vector<int> *task = new vector<int>[N_X * N_Y * N_Z];
+// #pragma omp parallel for schedule(guided)
+  for (int p = 0; p < P; p++) {
+    const int x = lower_bound(wx_bounds, wx_bounds + N_X, wx[p]) - wx_bounds;
+    const int y = lower_bound(wy_bounds, wy_bounds + N_Y, wy[p]) - wy_bounds;
+    const int z = lower_bound(wz_bounds, wz_bounds + N_Z, wz[p]) - wz_bounds;
+    const int id = x * N_Y * N_Z + y * N_Z + z;
+    task[id].push_back(p);
+    task_count[id]++;
+  }
+
+  // assign the task to tasklists
+  // priority_queue<int, vector<int>, cmp> task_list;
+  for (int i = 0; i < N_X * N_Y * N_Z; i++)
+    ConvolutionAdjCore(raw, task[i]);
+  delete []task;
 }
 
 /* Adjoint NUFFT transform */
