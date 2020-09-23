@@ -236,15 +236,14 @@ extern int numThreads;
     }                                                                          \
   }
 
-inline void find_id(const int& avg, const int& ratio, const int& P, int id[], float w[]) {
+inline void find_id(const int& avg, const int& ratio, const int& P, int id[],
+                    float w[]) {
   float min_w = w[0], max_w = w[0];
   int width_of_counter, sum;
-  for (int i = 0; i < P; i++) {
-    if (w[i] < min_w)
-      min_w = w[i];
-    else if (w[i] > max_w)
-      max_w = w[i];
-  }
+#pragma omp parallel for schedule(static) reduction(max : max_w)
+  for (int i = 1; i < P; i++) max_w = max_w > w[i] ? max_w : w[i];
+#pragma omp parallel for schedule(static) reduction(min : min_w)
+  for (int i = 1; i < P; i++) min_w = min_w < w[i] ? min_w : w[i];
   width_of_counter = (max_w - min_w) * ratio + 1;
   atomic<int>* counter =
       new atomic<int>[width_of_counter];  // use int instead of atomic<int> ?
@@ -274,15 +273,15 @@ inline void find_id(const int& avg, const int& ratio, const int& P, int id[], fl
 void analyze(int count[], int n, int m) {
   const double avg = m / n;
   double dev = 0;
-  for (int i = 0; i < n; i++)
-    dev += std::pow(count[i] - avg, 2);
+  for (int i = 0; i < n; i++) dev += std::pow(count[i] - avg, 2);
   dev = std::sqrt(dev / n);
   printf("divide %d to %d with sd %lf (avg %lf)\n", m, n, dev, avg);
 }
 
 void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
-  // TDEF(init);
-  // TSTART(init);
+  TDEF(init);
+  printf("%d: ", P);
+  TSTART(init);
 
   // find the task for each example
   int *id_x = new int[P], *id_y = new int[P], *id_z = new int[P];
@@ -291,9 +290,8 @@ void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
   find_id(P / N_Y, ratio, P, id_y, wy);
   find_id(P / N_Z, ratio, P, id_z, wz);
   vector<int>* task = new vector<int>[N_X * N_Y * N_Z];
-  #pragma omp parallel for schedule(static)
-  for (int i = 0; i < N_X * N_Y * N_Z; i++)
-    task_count[i] = 0;
+#pragma omp parallel for schedule(static)
+  for (int i = 0; i < N_X * N_Y * N_Z; i++) task_count[i] = 0;
   for (int p = 0; p < P; p++) {
     const int id = id_x[p] * N_Y * N_Z + id_y[p] * N_Z + id_z[p];
     task[id].push_back(p);
@@ -318,8 +316,8 @@ void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
     }
   }
 
-  // TEND(init);
-  // TPRINT(init, "  Init Convolution ADJ");
+  TEND(init);
+  TPRINT(init, "  Init Convolution ADJ");
 
   for (int i = 0; i < numThreads; i++) {
     thread_pool[i] = thread([&, this, raw, task, vis] {
