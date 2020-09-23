@@ -271,13 +271,22 @@ inline void find_id(const int& avg, const int& ratio, const int& P, int id[], fl
   delete[] counter;
 }
 
+void analyze(int count[], int n, int m) {
+  const double avg = m / n;
+  double dev = 0;
+  for (int i = 0; i < n; i++)
+    dev += std::pow(count[i] - avg, 2);
+  dev = std::sqrt(dev / n);
+  printf("divide %d to %d with sd %lf (avg %lf)\n", m, n, dev, avg);
+}
+
 void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
   // TDEF(init);
   // TSTART(init);
 
   // find the task for each example
   int *id_x = new int[P], *id_y = new int[P], *id_z = new int[P];
-  const int ratio = N2 / W;
+  const int ratio = N2 / W * 1;
   find_id(P / N_X, ratio, P, id_x, wx);
   find_id(P / N_Y, ratio, P, id_y, wy);
   find_id(P / N_Z, ratio, P, id_z, wz);
@@ -293,6 +302,8 @@ void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
   delete[] id_x;
   delete[] id_y;
   delete[] id_z;
+
+  // analyze(task_count, N_X * N_Y * N_Z, P);
 
   // assign the task to tasklists
   bool *in_queue = new bool[N_X * N_Y * N_Z], *vis = new bool[N_X * N_Y * N_Z];
