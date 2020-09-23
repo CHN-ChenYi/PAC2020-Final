@@ -1,12 +1,11 @@
-#include <algorithm>
+#include <atomic>
 #include <cassert>
 #include <thread>
 #include <vector>
 
 #include "common.h"
 
-using std::lower_bound;
-using std::sort;
+using std::atomic;
 using std::thread;
 using std::unique_lock;
 using std::vector;
@@ -237,45 +236,60 @@ extern int numThreads;
     }                                                                          \
   }
 
-void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
-  TDEF(init);
-  TSTART(init);
-
-  float* tmp_w = new float[P];
-  float wx_bounds[N_X], wy_bounds[N_Y], wz_bounds[N_Z];
-  // find the boundaries of x
+inline void find_id(const int& avg, const int& ratio, const int& P, int id[], float w[]) {
+  float min_w = w[0], max_w = w[0];
+  int width_of_counter, sum;
+  for (int i = 0; i < P; i++) {
+    if (w[i] < min_w)
+      min_w = w[i];
+    else if (w[i] > max_w)
+      max_w = w[i];
+  }
+  width_of_counter = (max_w - min_w) * ratio + 1;
+  atomic<int>* counter =
+      new atomic<int>[width_of_counter];  // use int instead of atomic<int> ?
 #pragma omp parallel for schedule(static)
-  for (int p = 0; p < P; p++) tmp_w[p] = wx[p];
-  sort(tmp_w, tmp_w + P);
+  for (int i = 0; i < width_of_counter; i++) counter[i] = 0;
 #pragma omp parallel for schedule(static)
-  for (int p = 0; p < N_X; p++) wx_bounds[p] = tmp_w[P * (p + 1) / N_X - 1];
-    // find the boundaries of y
-#pragma omp parallel for schedule(static)
-  for (int p = 0; p < P; p++) tmp_w[p] = wy[p];
-  sort(tmp_w, tmp_w + P);
-#pragma omp parallel for schedule(static)
-  for (int p = 0; p < N_Y; p++) wy_bounds[p] = tmp_w[P * (p + 1) / N_Y - 1];
-    // find the boundaries of z
-#pragma omp parallel for schedule(static)
-  for (int p = 0; p < P; p++) tmp_w[p] = wz[p];
-  sort(tmp_w, tmp_w + P);
-#pragma omp parallel for schedule(static)
-  for (int p = 0; p < N_Z; p++) wz_bounds[p] = tmp_w[P * (p + 1) / N_Z - 1];
-  delete tmp_w;
-
-  // find the task for each point
-#pragma omp parallel for schedule(static)
-  for (int i = 0; i < N_X * N_Y * N_Z; i++) task_count[i] = 0;
-  vector<int>* task = new vector<int>[N_X * N_Y * N_Z];
-  // #pragma omp parallel for schedule(guided)
   for (int p = 0; p < P; p++) {
-    const int x = lower_bound(wx_bounds, wx_bounds + N_X, wx[p]) - wx_bounds;
-    const int y = lower_bound(wy_bounds, wy_bounds + N_Y, wy[p]) - wy_bounds;
-    const int z = lower_bound(wz_bounds, wz_bounds + N_Z, wz[p]) - wz_bounds;
-    const int id = x * N_Y * N_Z + y * N_Z + z;
+    id[p] = (w[p] - min_w) * ratio;
+    counter[id[p]]++;
+  }
+  sum = counter[0];
+  counter[0] = 0;
+  for (int i = 0, sum = 0; i < width_of_counter; i++) {
+    if (sum > avg) {
+      sum = counter[i];
+      counter[i] = counter[i - 1].load() + 1;
+    } else {
+      sum += counter[i];
+      counter[i] = counter[i - 1].load();
+    }
+  }
+#pragma omp parallel for schedule(guided)
+  for (int p = 0; p < P; p++) id[p] = counter[id[p]];
+  delete[] counter;
+}
+
+void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
+  // TDEF(init);
+  // TSTART(init);
+
+  // find the task for each example
+  int *id_x = new int[P], *id_y = new int[P], *id_z = new int[P];
+  const int ratio = N2 / W;
+  find_id(P / N_X, ratio, P, id_x, wx);
+  find_id(P / N_Y, ratio, P, id_y, wy);
+  find_id(P / N_Z, ratio, P, id_z, wz);
+  vector<int>* task = new vector<int>[N_X * N_Y * N_Z];
+  for (int p = 0; p < P; p++) {
+    const int id = id_x[p] * N_Y * N_Z + id_y[p] * N_Z + id_z[p];
     task[id].push_back(p);
     task_count[id]++;
   }
+  delete[] id_x;
+  delete[] id_y;
+  delete[] id_z;
 
   // assign the task to tasklists
   bool *in_queue = new bool[N_X * N_Y * N_Z], *vis = new bool[N_X * N_Y * N_Z];
@@ -290,8 +304,8 @@ void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
     }
   }
 
-  TEND(init);
-  TPRINT(init, "  Init Convolution ADJ");
+  // TEND(init);
+  // TPRINT(init, "  Init Convolution ADJ");
 
   for (int i = 0; i < numThreads; i++) {
     thread_pool[i] = thread([&, i, this, raw, task, vis] {
