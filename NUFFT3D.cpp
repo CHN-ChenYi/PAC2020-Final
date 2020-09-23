@@ -282,6 +282,9 @@ void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
   find_id(P / N_Y, ratio, P, id_y, wy);
   find_id(P / N_Z, ratio, P, id_z, wz);
   vector<int>* task = new vector<int>[N_X * N_Y * N_Z];
+  #pragma omp parallel for schedule(static)
+  for (int i = 0; i < N_X * N_Y * N_Z; i++)
+    task_count[i] = 0;
   for (int p = 0; p < P; p++) {
     const int id = id_x[p] * N_Y * N_Z + id_y[p] * N_Z + id_z[p];
     task[id].push_back(p);
