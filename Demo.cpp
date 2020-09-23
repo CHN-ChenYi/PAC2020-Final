@@ -5,13 +5,14 @@ chrono::high_resolution_clock::time_point fwd_t0, fwd_t1, adj_t0, adj_t1,
 
 using namespace std;
 
+int numThreads = 1;
+
 int main(int argc, char **argv) {
   char rawfn[256], coordfn[256], ksfn[256], reffn[256], outfn[256];
   char base[256];
   int K, S;
   int numIters = 20;
 
-  int numThreads = 1;
   if (argc < 2) {
     printf("Usages: %s <basename> [numThreads] [numIterations]\n", argv[0]);
   }
