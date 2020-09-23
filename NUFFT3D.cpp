@@ -308,7 +308,7 @@ void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
   // TPRINT(init, "  Init Convolution ADJ");
 
   for (int i = 0; i < numThreads; i++) {
-    thread_pool[i] = thread([&, i, this, raw, task, vis] {
+    thread_pool[i] = thread([&, this, raw, task, vis] {
       int id = -1;
       while (task_left.load()) {
         if (id >= 0) {
