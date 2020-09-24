@@ -1,4 +1,4 @@
-# 2020 并行应用挑战赛优化组决赛赛题
+# [2020 并行应用挑战赛优化组决赛赛题](./2020并行应用挑战赛决赛.pdf)
 
 ## 题目
 三维非标准快速傅里叶变换
@@ -20,7 +20,7 @@
 
 Convolution 在其中是最耗时的计算，其算法如下（略）
 
-Convolution 的并行方法可以把所有采样分配到每个并行线程中计算，但是在相邻的点会出现互斥操作，影响并行效率。优化方法可参考文献 [High Performance Non-uniform FFT on Modern x86-based Multi-core Systems]，使用数据块划分进行多线程设计，并利用 Intel 的 AVX 指令集进行 SIMD 向量化优化。
+Convolution 的并行方法可以把所有采样分配到每个并行线程中计算，但是在相邻的点会出现互斥操作，影响并行效率。优化方法可参考文献 [High Performance Non-uniform FFT on Modern x86-based Multi-core Systems](./ipdps-2012-nufft.pdf)，使用数据块划分进行多线程设计，并利用 Intel 的 AVX 指令集进行 SIMD 向量化优化。
 
 ## 程序说明
 代码为 C++ 代码，已经实现 OpenMP 功能，源代码在根目录下，输入数据在 data 目录下，编译需要安装 boost 和 fftw。
