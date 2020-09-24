@@ -2,228 +2,203 @@ Orig
 
 Using 48 Threads
 K = 4323328 , S = 1, TotalSamples = 4323328
-  Init_F ADJ            0.061298         sec
-  Convolution ADJ       0.209673         sec
-  PostChop ADJ          0.148903         sec
-  FFTW ADJ              0.083774         sec
-  PreChop ADJ           0.139539         sec
-  Init_U ADJ            0.007344         sec
-  Roundoff_Corr ADJ     0.018801         sec
-NUFFT ADJ               0.669453         sec
-ADJ time =              0.669458                 sec
+  Init_F ADJ            0.060228         sec
+  Convolution ADJ       0.194138         sec
+  PostChop ADJ          0.143058         sec
+  FFTW ADJ              0.086603         sec
+  PreChop ADJ           0.140796         sec
+  Init_U ADJ            0.007638         sec
+  Roundoff_Corr ADJ     0.019094         sec
+NUFFT ADJ               0.651668         sec
+ADJ time =              0.651673                 sec
 =================================================
 Iteration 1 :
-  Init_F FWD            0.059288         sec
-  Roundoff_Corr FWD     0.019321         sec
-  PreChop FWD           0.146887         sec
-  FFTW FWD              0.084241         sec
-  PostChop FWD          0.169507         sec
-  Convolution FWD       0.181189         sec
-NUFFT FWD               0.660542         sec
-FWD time =              0.660546                 sec
+  Init_F FWD            0.060077         sec
+  Roundoff_Corr FWD     0.019681         sec
+  PreChop FWD           0.148619         sec
+  FFTW FWD              0.085362         sec
+  PostChop FWD          0.172665         sec
+  Convolution FWD       0.181298         sec
+NUFFT FWD               0.667792         sec
+FWD time =              0.667795                 sec
 -------------------------------------------------
-  Init_F ADJ            0.086479         sec
-  Convolution ADJ       0.212636         sec
-  PostChop ADJ          0.151904         sec
-  FFTW ADJ              0.086102         sec
-  PreChop ADJ           0.141221         sec
-  Init_U ADJ            0.007940         sec
-  Roundoff_Corr ADJ     0.019282         sec
-NUFFT ADJ               0.705676         sec
-ADJ time =              0.705681                 sec
+  Init_F ADJ            0.087009         sec
+  Convolution ADJ       0.196423         sec
+  PostChop ADJ          0.144734         sec
+  FFTW ADJ              0.085942         sec
+  PreChop ADJ           0.141632         sec
+  Init_U ADJ            0.007916         sec
+  Roundoff_Corr ADJ     0.019646         sec
+NUFFT ADJ               0.683415         sec
+ADJ time =              0.68342          sec
 Iteration 1 out of 1
 =================================================
 Total Computation Time:
-                2.44511  sec
+                2.41442  sec
 
 
 Random
 
 Using 48 Threads
-K = 1024 , S = 65536, TotalSamples = 67108864
-  Init_F ADJ            0.061211         sec
-  Convolution ADJ       2.677512         sec
-  PostChop ADJ          0.242325         sec
-  FFTW ADJ              0.088892         sec
-  PreChop ADJ           0.193242         sec
-  Init_U ADJ            0.011353         sec
-  Roundoff_Corr ADJ     0.035018         sec
-NUFFT ADJ               3.309674         sec
-ADJ time =              3.30968          sec
+K =  1024 , S = 65536, TotalSamples = 67108864
+  Init_F ADJ            0.061308         sec
+  Convolution ADJ       2.525135         sec
+  PostChop ADJ          0.220254         sec
+  FFTW ADJ              0.085701         sec
+  PreChop ADJ           0.192617         sec
+  Init_U ADJ            0.025639         sec
+  Roundoff_Corr ADJ     0.024448         sec
+NUFFT ADJ               3.135258         sec
+ADJ time =              3.13526          sec
 =================================================
 Iteration 1 :
-  Init_F FWD            0.098289         sec
-  Roundoff_Corr FWD     0.037348         sec
-  PreChop FWD           0.223416         sec
-  FFTW FWD              0.086632         sec
-  PostChop FWD          0.228395         sec
-  Convolution FWD       1.564765         sec
-NUFFT FWD               2.238949         sec
-FWD time =              2.23895          sec
+  Init_F FWD            0.097957         sec
+  Roundoff_Corr FWD     0.036474         sec
+  PreChop FWD           0.221168         sec
+  FFTW FWD              0.085526         sec
+  PostChop FWD          0.226463         sec
+  Convolution FWD       1.566558         sec
+NUFFT FWD               2.234320         sec
+FWD time =              2.23435          sec
 -------------------------------------------------
-  Init_F ADJ            0.110023         sec
-  Convolution ADJ       2.453356         sec
-  PostChop ADJ          0.225087         sec
-  FFTW ADJ              0.062978         sec
-  PreChop ADJ           0.182887         sec
-  Init_U ADJ            0.025635         sec
-  Roundoff_Corr ADJ     0.022119         sec
-NUFFT ADJ               3.082185         sec
-ADJ time =              3.08219          sec
+  Init_F ADJ            0.110490         sec
+  Convolution ADJ       2.183091         sec
+  PostChop ADJ          0.204792         sec
+  FFTW ADJ              0.066003         sec
+  PreChop ADJ           0.182990         sec
+  Init_U ADJ            0.025640         sec
+  Roundoff_Corr ADJ     0.021671         sec
+NUFFT ADJ               2.794802         sec
+ADJ time =              2.79481          sec
 Iteration 1 out of 1
 =================================================
 Total Computation Time:
-                9.07898  sec
-
-reference file: ./data/Random.bin.1.ans
-result file: $s
-Error #001 @ 304646 = 0.00118308
-ref[304646] = (-2.02271e-09,-2.60274e-08),  computed[304646] = (-2.03893e-09,-2.69252e-08)
-Error #002 @ 742937 = 0.00104066
-ref[742937] = (1.56626e-08,-1.28681e-08),  computed[742937] = (1.62551e-08,-1.25913e-08)
-Error #003 @ 1400236 = 0.0023341
-ref[1400236] = (-8.79696e-09,3.75802e-09),  computed[1400236] = (-8.43397e-09,4.04408e-09)
-Error #004 @ 3872246 = 0.00371488
-ref[3872246] = (-3.9369e-11,1.23754e-08),  computed[3872246] = (7.14088e-10,1.23401e-08)
-Error #005 @ 4190312 = 0.00306335
-ref[4190312] = (-4.06608e-09,1.3127e-08),  computed[4190312] = (-3.73179e-09,1.24438e-08)
-Error #006 @ 4714222 = 0.00106168
-ref[4714222] = (-2.18174e-08,-5.32418e-09),  computed[4714222] = (-2.23229e-08,-4.7951e-09)
-Error #007 @ 6506378 = 0.0030715
-ref[6506378] = (1.31292e-08,-4.0689e-09),  computed[6506378] = (1.2446e-08,-3.73193e-09)
-Error #008 @ 8067682 = 0.00187849
-ref[8067682] = (9.73317e-10,9.63542e-09),  computed[8067682] = (1.36486e-09,9.48417e-09)
-Error #009 @ 9296454 = 0.00234936
-ref[9296454] = (3.7572e-09,-8.80187e-09),  computed[9296454] = (4.04756e-09,-8.44011e-09)
-Error #010 @ 10392044 = 0.00117197
-ref[10392044] = (-2.60288e-08,-2.02811e-09),  computed[10392044] = (-2.69225e-08,-2.03622e-09)
-avg = (1.04746e-09 -2.93811e-09) ref = (1.04761e-09 -2.93845e-09)
-FAILED! Total of 10 errors found
+                8.60113  sec
 
 
 Radial
 
 Using 48 Threads
 K = 1024 , S = 65536, TotalSamples = 67108864
-  Init_F ADJ            0.061342         sec
-  Convolution ADJ       5.867146         sec
-  PostChop ADJ          0.222022         sec
-  FFTW ADJ              0.086971         sec
-  PreChop ADJ           0.195115         sec
-  Init_U ADJ            0.026049         sec
-  Roundoff_Corr ADJ     0.035135         sec
-NUFFT ADJ               6.493915         sec
-ADJ time =              6.49392          sec
+  Init_F ADJ            0.061219         sec
+  Convolution ADJ       5.056098         sec
+  PostChop ADJ          0.201155         sec
+  FFTW ADJ              0.092158         sec
+  PreChop ADJ           0.191316         sec
+  Init_U ADJ            0.011170         sec
+  Roundoff_Corr ADJ     0.026984         sec
+NUFFT ADJ               5.640214         sec
+ADJ time =              5.64022          sec
 =================================================
 Iteration 1 :
-  Init_F FWD            0.099941         sec
-  Roundoff_Corr FWD     0.026715         sec
-  PreChop FWD           0.224196         sec
-  FFTW FWD              0.087168         sec
-  PostChop FWD          0.230263         sec
-  Convolution FWD       1.659814         sec
-NUFFT FWD               2.328185         sec
-FWD time =              2.32819          sec
+  Init_F FWD            0.095142         sec
+  Roundoff_Corr FWD     0.039301         sec
+  PreChop FWD           0.220209         sec
+  FFTW FWD              0.085167         sec
+  PostChop FWD          0.225806         sec
+  Convolution FWD       1.668310         sec
+NUFFT FWD               2.334033         sec
+FWD time =              2.33404          sec
 -------------------------------------------------
-  Init_F ADJ            0.120136         sec
-  Convolution ADJ       5.527033         sec
-  PostChop ADJ          0.212144         sec
-  FFTW ADJ              0.089231         sec
-  PreChop ADJ           0.189789         sec
-  Init_U ADJ            0.026222         sec
-  Roundoff_Corr ADJ     0.023064         sec
-NUFFT ADJ               6.187720         sec
-ADJ time =              6.18773          sec
+  Init_F ADJ            0.123304         sec
+  Convolution ADJ       4.828077         sec
+  PostChop ADJ          0.193378         sec
+  FFTW ADJ              0.064560         sec
+  PreChop ADJ           0.184495         sec
+  Init_U ADJ            0.026747         sec
+  Roundoff_Corr ADJ     0.034588         sec
+NUFFT ADJ               5.455262         sec
+ADJ time =              5.45527          sec
 Iteration 1 out of 1
 =================================================
 Total Computation Time:
-                15.4454  sec
+                13.885   sec
 
 reference file: ./data/Radial.bin.1.ans
 result file: $s
-Error #001 @ 200 = 0.00256478
-ref[200] = (-1.77135e-08,1.77876e-08),  computed[200] = (-1.73467e-08,1.90049e-08)
-Error #002 @ 202 = 0.553473
-ref[202] = (-1.29481e-09,1.33987e-09),  computed[202] = (-9.08592e-10,2.67117e-09)
-Error #003 @ 204 = 0.0309273
-ref[204] = (6.01558e-09,-5.99447e-09),  computed[204] = (6.4005e-09,-4.55144e-09)
-Error #004 @ 206 = 0.241724
-ref[206] = (-2.31088e-09,2.29501e-09),  computed[206] = (-1.94744e-09,3.85448e-09)
-Error #005 @ 207 = 0.00151181
-ref[207] = (-3.01516e-08,3.01204e-08),  computed[207] = (-2.98159e-08,3.17432e-08)
-Error #006 @ 208 = 0.00234174
-ref[208] = (-2.43105e-08,2.42785e-08),  computed[208] = (-2.39809e-08,2.59081e-08)
-Error #007 @ 209 = 0.0486452
-ref[209] = (5.19708e-09,-5.24472e-09),  computed[209] = (5.5441e-09,-3.65363e-09)
-Error #008 @ 211 = 0.00139477
-ref[211] = (2.94335e-08,-2.9514e-08),  computed[211] = (2.97656e-08,-2.79932e-08)
-Error #009 @ 213 = 0.00114938
-ref[213] = (3.09057e-08,-3.09998e-08),  computed[213] = (3.12119e-08,-2.95476e-08)
-Error #010 @ 214 = 0.00133738
-ref[214] = (-2.88258e-08,2.8724e-08),  computed[214] = (-2.85904e-08,3.01935e-08)
-avg = (-6.00053e-08 6.34762e-08) ref = (-6.00737e-08 6.334e-08)
-FAILED! Total of 282101 errors found
+Error #001 @ 202 = 0.0342855
+ref[202] = (-1.29481e-09,1.33987e-09),  computed[202] = (-1.19759e-09,1.6709e-09)
+Error #002 @ 204 = 0.00181002
+ref[204] = (6.01558e-09,-5.99447e-09),  computed[204] = (6.18616e-09,-5.67597e-09)
+Error #003 @ 206 = 0.0174942
+ref[206] = (-2.31088e-09,2.29501e-09),  computed[206] = (-2.04674e-09,2.6353e-09)
+Error #004 @ 209 = 0.00570095
+ref[209] = (5.19708e-09,-5.24472e-09),  computed[209] = (5.60515e-09,-4.86488e-09)
+Error #005 @ 215 = 0.0017438
+ref[215] = (1.40893e-08,-1.42032e-08),  computed[215] = (1.47308e-08,-1.36679e-08)
+Error #006 @ 216 = 0.576583
+ref[216] = (7.27394e-10,-8.6079e-10),  computed[216] = (1.38343e-09,-3.11325e-10)
+Error #007 @ 217 = 0.0127002
+ref[217] = (-5.46123e-09,5.3244e-09),  computed[217] = (-4.79663e-09,5.8695e-09)
+Error #008 @ 424 = 0.00244114
+ref[424] = (5.31447e-09,-5.32035e-09),  computed[424] = (5.50192e-09,-4.99956e-09)
+Error #009 @ 430 = 0.00228043
+ref[430] = (-9.41429e-09,9.34509e-09),  computed[430] = (-8.95827e-09,9.78476e-09)
+Error #010 @ 431 = 0.00824908
+ref[431] = (5.26517e-09,-5.36228e-09),  computed[431] = (5.76901e-09,-4.90183e-09)
+avg = (-5.99883e-08 6.34315e-08) ref = (-6.00737e-08 6.334e-08)
+FAILED! Total of 236998 errors found
 
 
 Spiral
 
 Using 48 Threads
 K = 1024 , S = 65536, TotalSamples = 67108864
-  Init_F ADJ            0.061375         sec
-  Convolution ADJ       2.779175         sec
-  PostChop ADJ          0.228163         sec
-  FFTW ADJ              0.089733         sec
-  PreChop ADJ           0.193476         sec
-  Init_U ADJ            0.011250         sec
-  Roundoff_Corr ADJ     0.027441         sec
-NUFFT ADJ               3.390741         sec
-ADJ time =              3.39075          sec
+  Init_F ADJ            0.061198         sec
+  Convolution ADJ       2.596905         sec
+  PostChop ADJ          0.209110         sec
+  FFTW ADJ              0.088892         sec
+  PreChop ADJ           0.193675         sec
+  Init_U ADJ            0.026142         sec
+  Roundoff_Corr ADJ     0.034881         sec
+NUFFT ADJ               3.210965         sec
+ADJ time =              3.21097          sec
 =================================================
 Iteration 1 :
-  Init_F FWD            0.097853         sec
-  Roundoff_Corr FWD     0.045875         sec
-  PreChop FWD           0.221804         sec
-  FFTW FWD              0.088473         sec
-  PostChop FWD          0.227447         sec
-  Convolution FWD       1.729433         sec
-NUFFT FWD               2.411079         sec
-FWD time =              2.41108          sec
+  Init_F FWD            0.098516         sec
+  Roundoff_Corr FWD     0.027084         sec
+  PreChop FWD           0.220766         sec
+  FFTW FWD              0.084593         sec
+  PostChop FWD          0.226499         sec
+  Convolution FWD       1.725842         sec
+NUFFT FWD               2.383495         sec
+FWD time =              2.38353          sec
 -------------------------------------------------
-  Init_F ADJ            0.129455         sec
-  Convolution ADJ       2.512033         sec
-  PostChop ADJ          0.219386         sec
-  FFTW ADJ              0.073039         sec
-  PreChop ADJ           0.188544         sec
-  Init_U ADJ            0.026074         sec
-  Roundoff_Corr ADJ     0.022634         sec
-NUFFT ADJ               3.171288         sec
-ADJ time =              3.17129          sec
+  Init_F ADJ            0.128116         sec
+  Convolution ADJ       2.257696         sec
+  PostChop ADJ          0.199028         sec
+  FFTW ADJ              0.072307         sec
+  PreChop ADJ           0.187077         sec
+  Init_U ADJ            0.026039         sec
+  Roundoff_Corr ADJ     0.022231         sec
+NUFFT ADJ               2.892638         sec
+ADJ time =              2.89264          sec
 Iteration 1 out of 1
 =================================================
 Total Computation Time:
-                9.43433  sec
+                8.92331  sec
 
 reference file: ./data/Spiral.bin.1.ans
 result file: $s
-Error #001 @ 9 = 0.00152013
-ref[9] = (-1.58778e-07,1.95157e-07),  computed[9] = (-1.48973e-07,1.9543e-07)
-Error #002 @ 13 = 0.0230163
-ref[13] = (-4.65393e-08,1.61498e-08),  computed[13] = (-4.03618e-08,1.19436e-08)
-Error #003 @ 223 = 0.00364687
-ref[223] = (-6.82615e-08,-1.52778e-08),  computed[223] = (-6.71371e-08,-1.12059e-08)
-Error #004 @ 228 = 0.001073
-ref[228] = (4.62678e-08,-1.4333e-07),  computed[228] = (5.11133e-08,-1.44258e-07)
-Error #005 @ 230 = 0.109121
-ref[230] = (-2.36998e-08,2.12608e-08),  computed[230] = (-1.32897e-08,2.27596e-08)
-Error #006 @ 241 = 0.0015893
-ref[241] = (-3.27222e-08,6.52906e-08),  computed[241] = (-3.48274e-08,6.32794e-08)
-Error #007 @ 444 = 0.00187473
-ref[444] = (-1.01373e-08,-7.26085e-08),  computed[444] = (-7.18052e-09,-7.14536e-08)
-Error #008 @ 449 = 0.00993092
-ref[449] = (4.80493e-09,-7.57303e-08),  computed[449] = (1.2203e-08,-7.72963e-08)
-Error #009 @ 665 = 0.00157235
-ref[665] = (1.17321e-07,-1.46901e-07),  computed[665] = (1.24721e-07,-1.46002e-07)
-Error #010 @ 666 = 0.00103629
-ref[666] = (-2.08873e-07,2.70856e-07),  computed[666] = (-1.98095e-07,2.73109e-07)
-avg = (-4.70699e-09 4.62579e-09) ref = (-4.66213e-09 4.64641e-09)
-FAILED! Total of 3847707 errors found
+Error #001 @ 20 = 0.00198339
+ref[20] = (9.68703e-08,-1.12921e-07),  computed[20] = (9.19575e-08,-1.08475e-07)
+Error #002 @ 21 = 0.00331367
+ref[21] = (4.08708e-09,-1.48523e-07),  computed[21] = (-3.12077e-09,-1.43919e-07)
+Error #003 @ 223 = 0.00256649
+ref[223] = (-6.82615e-08,-1.52778e-08),  computed[223] = (-6.68565e-08,-1.20245e-08)
+Error #004 @ 241 = 0.00932158
+ref[241] = (-3.27222e-08,6.52906e-08),  computed[241] = (-3.74187e-08,7.05499e-08)
+Error #005 @ 242 = 0.0172177
+ref[242] = (-5.08689e-08,-3.59471e-08),  computed[242] = (-5.51937e-08,-2.90118e-08)
+Error #006 @ 442 = 0.00202179
+ref[442] = (9.07679e-08,-6.1565e-08),  computed[442] = (9.17104e-08,-5.67243e-08)
+Error #007 @ 677 = 0.00168156
+ref[677] = (7.19396e-08,-4.42472e-08),  computed[677] = (7.12267e-08,-4.0858e-08)
+Error #008 @ 898 = 0.00111151
+ref[898] = (-1.0051e-07,1.48482e-07),  computed[898] = (-9.73247e-08,1.5354e-07)
+Error #009 @ 899 = 0.0157669
+ref[899] = (-7.76858e-09,-5.96794e-08),  computed[899] = (-1.45451e-09,-5.55273e-08)
+Error #010 @ 1106 = 0.00179909
+ref[1106] = (1.64705e-08,-1.0045e-07),  computed[1106] = (1.92856e-08,-9.71765e-08)
+avg = (-4.90036e-09 4.33798e-09) ref = (-4.66213e-09 4.64641e-09)
+FAILED! Total of 4938638 errors found

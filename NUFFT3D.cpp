@@ -184,6 +184,7 @@ void NUFFT3D::ConvolutionAdjCore(complex<float>* raw, vector<int>& task) {
     int x1 = (int)ceil(kx - W);
     int x2 = (int)floor(kx + W);
     int lx = x2 - x1 + 1;
+#pragma omp simd
     for (int nx = 0; nx < lx; nx++) {
       kx2[nx] = mod(nx + x1, N2);
       winX[nx] = LUT[(int)round(((L - 1) / W) * abs(nx + x1 - kx))];
@@ -194,6 +195,7 @@ void NUFFT3D::ConvolutionAdjCore(complex<float>* raw, vector<int>& task) {
     int y1 = (int)ceil(ky - W);
     int y2 = (int)floor(ky + W);
     int ly = y2 - y1 + 1;
+#pragma omp simd
     for (int ny = 0; ny < ly; ny++) {
       ky2[ny] = mod(ny + y1, N2);
       winY[ny] = LUT[(int)round(((L - 1) / W) * abs(ny + y1 - ky))];
@@ -204,6 +206,7 @@ void NUFFT3D::ConvolutionAdjCore(complex<float>* raw, vector<int>& task) {
     int z1 = (int)ceil(kz - W);
     int z2 = (int)floor(kz + W);
     int lz = z2 - z1 + 1;
+#pragma omp simd
     for (int nz = 0; nz < lz; nz++) {
       kz2[nz] = mod(nz + z1, N2);
       winZ[nz] = LUT[(int)round(((L - 1) / W) * abs(nz + z1 - kz))];
@@ -212,6 +215,7 @@ void NUFFT3D::ConvolutionAdjCore(complex<float>* raw, vector<int>& task) {
     // Interpolation
     for (int nx = 0; nx < lx; nx++) {
       for (int ny = 0; ny < ly; ny++) {
+#pragma omp simd
         for (int nz = 0; nz < lz; nz++) {
           f[kx2[nx] * N2 * N2 + ky2[ny] * N2 + kz2[nz]] +=
               raw[p] * winX[nx] * winY[ny] * winZ[nz];
