@@ -184,6 +184,7 @@ void NUFFT3D::ConvolutionAdjCore(complex<float>* raw, vector<int>& task) {
     int x1 = (int)ceil(kx - W);
     int x2 = (int)floor(kx + W);
     int lx = x2 - x1 + 1;
+#pragma omp simd
     for (int nx = 0; nx < lx; nx++) {
       kx2[nx] = mod(nx + x1, N2);
       winX[nx] = LUT[(int)round(((L - 1) / W) * abs(nx + x1 - kx))];
@@ -194,6 +195,7 @@ void NUFFT3D::ConvolutionAdjCore(complex<float>* raw, vector<int>& task) {
     int y1 = (int)ceil(ky - W);
     int y2 = (int)floor(ky + W);
     int ly = y2 - y1 + 1;
+#pragma omp simd
     for (int ny = 0; ny < ly; ny++) {
       ky2[ny] = mod(ny + y1, N2);
       winY[ny] = LUT[(int)round(((L - 1) / W) * abs(ny + y1 - ky))];
@@ -204,6 +206,7 @@ void NUFFT3D::ConvolutionAdjCore(complex<float>* raw, vector<int>& task) {
     int z1 = (int)ceil(kz - W);
     int z2 = (int)floor(kz + W);
     int lz = z2 - z1 + 1;
+#pragma omp simd
     for (int nz = 0; nz < lz; nz++) {
       kz2[nz] = mod(nz + z1, N2);
       winZ[nz] = LUT[(int)round(((L - 1) / W) * abs(nz + z1 - kz))];
@@ -212,6 +215,7 @@ void NUFFT3D::ConvolutionAdjCore(complex<float>* raw, vector<int>& task) {
     // Interpolation
     for (int nx = 0; nx < lx; nx++) {
       for (int ny = 0; ny < ly; ny++) {
+#pragma omp simd
         for (int nz = 0; nz < lz; nz++) {
           f[kx2[nx] * N2 * N2 + ky2[ny] * N2 + kz2[nz]] +=
               raw[p] * winX[nx] * winY[ny] * winZ[nz];
@@ -236,34 +240,30 @@ extern int numThreads;
     }                                                                          \
   }
 
-inline void find_id(const int& avg, const int& ratio, const int& P, int id[], float w[]) {
+inline void find_id(const int& avg, const int& ratio, const int& P, int id[],
+                    float w[]) {
   float min_w = w[0], max_w = w[0];
   int width_of_counter, sum;
-  for (int i = 0; i < P; i++) {
-    if (w[i] < min_w)
-      min_w = w[i];
-    else if (w[i] > max_w)
-      max_w = w[i];
-  }
+#pragma omp parallel for schedule(static) reduction(max : max_w)
+  for (int i = 1; i < P; i++) max_w = max_w > w[i] ? max_w : w[i];
+#pragma omp parallel for schedule(static) reduction(min : min_w)
+  for (int i = 1; i < P; i++) min_w = min_w < w[i] ? min_w : w[i];
   width_of_counter = (max_w - min_w) * ratio + 1;
-  atomic<int>* counter =
-      new atomic<int>[width_of_counter];  // use int instead of atomic<int> ?
+  int* counter = new int[width_of_counter];
 #pragma omp parallel for schedule(static)
   for (int i = 0; i < width_of_counter; i++) counter[i] = 0;
 #pragma omp parallel for schedule(static)
-  for (int p = 0; p < P; p++) {
-    id[p] = (w[p] - min_w) * ratio;
-    counter[id[p]]++;
-  }
+  for (int p = 0; p < P; p++) id[p] = (w[p] - min_w) * ratio;
+  for (int p = 0; p < P; p++) counter[id[p]]++;
   sum = counter[0];
   counter[0] = 0;
   for (int i = 0, sum = 0; i < width_of_counter; i++) {
     if (sum > avg) {
       sum = counter[i];
-      counter[i] = counter[i - 1].load() + 1;
+      counter[i] = counter[i - 1] + 1;
     } else {
       sum += counter[i];
-      counter[i] = counter[i - 1].load();
+      counter[i] = counter[i - 1];
     }
   }
 #pragma omp parallel for schedule(guided)
@@ -274,14 +274,14 @@ inline void find_id(const int& avg, const int& ratio, const int& P, int id[], fl
 void analyze(int count[], int n, int m) {
   const double avg = m / n;
   double dev = 0;
-  for (int i = 0; i < n; i++)
-    dev += std::pow(count[i] - avg, 2);
+  for (int i = 0; i < n; i++) dev += std::pow(count[i] - avg, 2);
   dev = std::sqrt(dev / n);
   printf("divide %d to %d with sd %lf (avg %lf)\n", m, n, dev, avg);
 }
 
 void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
   // TDEF(init);
+  // printf("%d: ", P);
   // TSTART(init);
 
   // find the task for each example
@@ -291,9 +291,8 @@ void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
   find_id(P / N_Y, ratio, P, id_y, wy);
   find_id(P / N_Z, ratio, P, id_z, wz);
   vector<int>* task = new vector<int>[N_X * N_Y * N_Z];
-  #pragma omp parallel for schedule(static)
-  for (int i = 0; i < N_X * N_Y * N_Z; i++)
-    task_count[i] = 0;
+#pragma omp parallel for schedule(static)
+  for (int i = 0; i < N_X * N_Y * N_Z; i++) task_count[i] = 0;
   for (int p = 0; p < P; p++) {
     const int id = id_x[p] * N_Y * N_Z + id_y[p] * N_Z + id_z[p];
     task[id].push_back(p);
