@@ -245,24 +245,21 @@ inline void find_id(const int& avg, const int& ratio, const int& P, int id[],
 #pragma omp parallel for schedule(static) reduction(min : min_w)
   for (int i = 1; i < P; i++) min_w = min_w < w[i] ? min_w : w[i];
   width_of_counter = (max_w - min_w) * ratio + 1;
-  atomic<int>* counter =
-      new atomic<int>[width_of_counter];  // use int instead of atomic<int> ?
+  int* counter = new int[width_of_counter];
 #pragma omp parallel for schedule(static)
   for (int i = 0; i < width_of_counter; i++) counter[i] = 0;
 #pragma omp parallel for schedule(static)
-  for (int p = 0; p < P; p++) {
-    id[p] = (w[p] - min_w) * ratio;
-    counter[id[p]]++;
-  }
+  for (int p = 0; p < P; p++) id[p] = (w[p] - min_w) * ratio;
+  for (int p = 0; p < P; p++) counter[id[p]]++;
   sum = counter[0];
   counter[0] = 0;
   for (int i = 0, sum = 0; i < width_of_counter; i++) {
     if (sum > avg) {
       sum = counter[i];
-      counter[i] = counter[i - 1].load() + 1;
+      counter[i] = counter[i - 1] + 1;
     } else {
       sum += counter[i];
-      counter[i] = counter[i - 1].load();
+      counter[i] = counter[i - 1];
     }
   }
 #pragma omp parallel for schedule(guided)
@@ -279,9 +276,9 @@ void analyze(int count[], int n, int m) {
 }
 
 void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
-  TDEF(init);
-  printf("%d: ", P);
-  TSTART(init);
+  // TDEF(init);
+  // printf("%d: ", P);
+  // TSTART(init);
 
   // find the task for each example
   int *id_x = new int[P], *id_y = new int[P], *id_z = new int[P];
@@ -316,8 +313,8 @@ void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
     }
   }
 
-  TEND(init);
-  TPRINT(init, "  Init Convolution ADJ");
+  // TEND(init);
+  // TPRINT(init, "  Init Convolution ADJ");
 
   for (int i = 0; i < numThreads; i++) {
     thread_pool[i] = thread([&, this, raw, task, vis] {
