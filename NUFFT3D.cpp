@@ -171,6 +171,7 @@ void NUFFT3D::fwd(complex<float>* u, complex<float>* raw) {
 }
 
 void NUFFT3D::ConvolutionAdjCore(complex<float>* raw, vector<int>& task) {
+  // unique_lock<mutex> lock{this->f2_lock};
   for (int& p : task) {
     int kx2[2 * W + 1];
     int ky2[2 * W + 1];
@@ -273,8 +274,13 @@ inline void find_id(const int& avg, const int& ratio, const int& P, int id[],
 
 void analyze(int count[], int n, int m) {
   const double avg = m / n;
+  int sum = 0;
   double dev = 0;
-  for (int i = 0; i < n; i++) dev += std::pow(count[i] - avg, 2);
+  for (int i = 0; i < n; i++) {
+    dev += std::pow(count[i] - avg, 2);
+    sum += count[i];
+  }
+  assert(sum == m);
   dev = std::sqrt(dev / n);
   printf("divide %d to %d with sd %lf (avg %lf)\n", m, n, dev, avg);
 }
@@ -302,7 +308,7 @@ void NUFFT3D::ConvolutionAdj(complex<float>* raw) {
   delete[] id_y;
   delete[] id_z;
 
-  // analyze(task_count, N_X * N_Y * N_Z, P);
+  analyze(task_count, N_X * N_Y * N_Z, P);
 
   // assign the task to tasklists
   bool *in_queue = new bool[N_X * N_Y * N_Z], *vis = new bool[N_X * N_Y * N_Z];
