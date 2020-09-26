@@ -17,7 +17,7 @@ using namespace std;
 // can only exist one object at a time
 class NUFFT3D {
  private:
-  complex<float>* f;
+  complex<double>* f;
   int N;
   int OF;
   int N2;
@@ -36,8 +36,8 @@ class NUFFT3D {
   int offsetZ;
   int W;
   int L;
-  fftwf_plan fwdPlan;
-  fftwf_plan adjPlan;
+  fftw_plan fwdPlan;
+  fftw_plan adjPlan;
   float* LUT;
   void buildLUT();
   void getScalingFunction();
@@ -50,7 +50,7 @@ class NUFFT3D {
       return task_count[left] > task_count[right];
     }
   };
-  std::mutex m_lock;
+  std::mutex m_lock, f2_lock;
   std::condition_variable cv_task;
   std::atomic<int> task_left;
   std::priority_queue<int, vector<int>, cmp> task_list;

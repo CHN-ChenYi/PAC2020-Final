@@ -47,29 +47,29 @@ NUFFT3D::NUFFT3D(int N, int OF, float* wx, float* wy, float* wz, int P,
   this->L = L;
 
   int DIMS[3] = {N2, N2, N2};
-  f = (complex<float>*)memalign(16, N2 * N2 * N2 * sizeof(complex<float>));
-  fwdPlan = fftwf_plan_dft(3, DIMS, reinterpret_cast<fftwf_complex*>(f),
-                           reinterpret_cast<fftwf_complex*>(f), FFTW_FORWARD,
-                           FFTW_ESTIMATE);
-  adjPlan = fftwf_plan_dft(3, DIMS, reinterpret_cast<fftwf_complex*>(f),
-                           reinterpret_cast<fftwf_complex*>(f), FFTW_BACKWARD,
-                           FFTW_ESTIMATE);
+  f = (complex<double>*)memalign(16, N2 * N2 * N2 * sizeof(complex<double>));
+  fwdPlan = fftw_plan_dft(3, DIMS, reinterpret_cast<fftw_complex*>(f),
+                          reinterpret_cast<fftw_complex*>(f), FFTW_FORWARD,
+                          FFTW_ESTIMATE);
+  adjPlan = fftw_plan_dft(3, DIMS, reinterpret_cast<fftw_complex*>(f),
+                          reinterpret_cast<fftw_complex*>(f), FFTW_BACKWARD,
+                          FFTW_ESTIMATE);
   buildLUT();
   getScalingFunction();
 }
 
 /* Destructor */
 NUFFT3D::~NUFFT3D() {
-  fftwf_destroy_plan(fwdPlan);
-  fftwf_destroy_plan(adjPlan);
+  fftw_destroy_plan(fwdPlan);
+  fftw_destroy_plan(adjPlan);
   free(f);
   f = NULL;
 }
 
 /* Initialize multithreaded FFTW (p threads) */
 void NUFFT3D::init(int nThreads) {
-  fftwf_init_threads();
-  fftwf_plan_with_nthreads(nThreads);
+  fftw_init_threads();
+  fftw_plan_with_nthreads(nThreads);
 }
 
 /* Forward NUFFT transform */
@@ -104,7 +104,7 @@ void NUFFT3D::fwd(complex<float>* u, complex<float>* raw) {
   TEND(fftw);
   TPRINT(fftw, "  PreChop FWD")
   TSTART(fftw);
-  fftwf_execute(fwdPlan);
+  fftw_execute(fwdPlan);
   TEND(fftw);
   TPRINT(fftw, "  FFTW FWD");
   TSTART(fftw)
@@ -409,7 +409,7 @@ void NUFFT3D::adj(complex<float>* raw, complex<float>* u) {
   TEND(fftw);
   TPRINT(fftw, "  PostChop ADJ");
   TSTART(fftw);
-  fftwf_execute(adjPlan);
+  fftw_execute(adjPlan);
   TEND(fftw);
   TPRINT(fftw, "  FFTW ADJ");
   TSTART(fftw);
@@ -495,7 +495,7 @@ void NUFFT3D::getScalingFunction() {
 
   // (Oversampled) FFT
   chop3D(f, N2, N2, N2, postchopX, postchopY, postchopZ);
-  fftwf_execute(adjPlan);
+  fftw_execute(adjPlan);
   chop3D(f, N2, N2, N2, prechopX, prechopY, prechopZ);
 
   // Truncate and keep only the real component (presuming Fourier domain
