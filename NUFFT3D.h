@@ -12,7 +12,7 @@ using namespace std;
 
 class NUFFT3D {
  private:
-  complex<float>* f;
+  complex<double>* f;
   int N;
   int OF;
   int N2;
@@ -31,8 +31,8 @@ class NUFFT3D {
   int offsetZ;
   int W;
   int L;
-  fftwf_plan fwdPlan;
-  fftwf_plan adjPlan;
+  fftw_plan fwdPlan;
+  fftw_plan adjPlan;
   float* LUT;
   void buildLUT();
   void getScalingFunction();
